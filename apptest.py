@@ -1661,6 +1661,11 @@ def main():
                 options=st.session_state.favorites,
                 key="favorite_selector"
             )
+            # Override symbol if a search was performed
+            if 'selected_symbol' in st.session_state:
+                symbol = st.session_state.selected_symbol
+                # Clear it after using it
+                del st.session_state.selected_symbol
         
         # Implement remove button in second column
         with col2:
@@ -1708,6 +1713,10 @@ def main():
                     formatted_symbol = f"{formatted_symbol}.FRA"
                 
                 symbol = formatted_symbol
+                if st.sidebar.button("Search", key="search_button"):
+    # We need to use a different session state variable to avoid the widget conflict
+                    st.session_state.selected_symbol = symbol
+                    st.rerun()  # Rerun to apply changes
             except Exception as e:
                 st.sidebar.error(f"Error setting exchange: {e}")
                 # Fallback to default (no change)
@@ -1723,14 +1732,18 @@ def main():
                     # Save to database
                     save_favorite_to_db(symbol)
                     st.sidebar.success(f"Added {symbol} to favorites!")
+
+            
+ 
         
-        # Time period selection
+       # Time period selection
         st.sidebar.header("Select Time Period:")
         period_options = ["1 Week", "1 Month", "3 Months", "6 Months", "1 Year"]
         period = st.sidebar.select_slider(
             "",
             options=period_options,
-            value="1 Week"
+            value="1 Week",
+            key="period_slider"  # Add a key to track changes
         )
         
         # Learning resources
@@ -1785,6 +1798,10 @@ if uploaded_files:
                 if 'uploaded_files' not in st.session_state:
                     st.session_state.uploaded_files = []
                 st.session_state.uploaded_files.extend(uploaded_files)
+
+                st.session_state['active_tab'] = 1  # 1 is the index for Investment Assistant
+                st.rerun()  # Rerun the app to apply the tab switch
+                
         except Exception as e:
             st.sidebar.error(f"Error processing documents: {e}")
 
@@ -1796,17 +1813,17 @@ if uploaded_files:
             symbol = st.session_state.get("favorite_selector", "AAPL")  # Default to AAPL if nothing selected
 
 #            Add this line to fix the error:
-            period = st.session_state.get("period", "1 Week")  # Default to 1 Week
+            period = st.session_state.get("period_slider", "1 Week")  # Default to 1 Week
 
             # Get the currently selected symbol
             symbol = st.session_state.get("favorite_selector", "AAPL")  # Default to AAPL if nothing selected
 
 # Make sure period is defined
-            period = st.session_state.get("period", "1 Week")  # Default to 1 Week if not set
+            period = st.session_state.get("period_slider", "1 Week")  # Get period from session state
 
             # Add these two lines right before line 1807
 symbol = st.session_state.get("favorite_selector", "AAPL")  # Default to AAPL if nothing selected
-period = st.session_state.get("period", "1 Week")  # Default to 1 Week if not set
+period = st.session_state.get("period_slider", "1 Week")  # Get period from session state
 
 # Then this line should work
 with st.spinner(f"Analyzing {symbol}..."):
@@ -1829,205 +1846,322 @@ with st.spinner(f"Analyzing {symbol}..."):
                 results = {}
                 currency_info = CURRENCY_CONFIG["US"]
         
-        # Main tabs
-        tabs = st.tabs(["Analysis Dashboard", "Investment Assistant"])
         
-        with tabs[1]:
-            st.header(f"{symbol} Analysis")
+        
+        # Main tabs
+# Main tabs - set active tab based on session state
+active_tab = st.session_state.get('active_tab', 0)  # Default to Analysis Dashboard
+tabs = st.tabs(["Analysis Dashboard", "Investment Assistant"])
+
+# First tab - Analysis Dashboard
+with tabs[0]:
+    if not symbol or symbol == "":
+        # Welcome screen when no stock is selected
+        st.title("Welcome to Intelligent Financial Insights Platform")
+        st.write("👋 Please select a stock from the Favorites list or search for a stock symbol in the sidebar to begin.")
+        st.write("📊 This platform provides comprehensive stock analysis, technical indicators, and AI-powered investment insights.")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            st.subheader("Features:")
+            st.markdown("""
+            - Historical price analysis with interactive charts
+            - Technical indicators (RSI, MACD, Bollinger Bands)
+            - Support and resistance level detection
+            - AI-powered investment recommendations
+            - Document analysis for context-aware insights
+            """)
+        
+        with col2:
+            st.subheader("Getting Started:")
+            st.markdown("""
+            1. Select a stock from favorites or search for a symbol
+            2. Upload relevant financial documents (optional)
+            3. View analysis in the dashboard
+            4. Ask questions in the Investment Assistant tab
+            """)
+    else:
+        # Stock analysis content
+        st.header(f"{symbol} Analysis")
+        
+        # Current price info
+        if stock_data is not None and not stock_data.empty:
+            current_data = results.get("current_data", {})
             
-            # Current price info
-            if stock_data is not None and not stock_data.empty:
-                current_data = results.get("current_data", {})
-                
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    price_change = current_data.get("change", 0)
-                    st.metric(
-                        label="Current Price",
-                        value=format_currency(current_data.get("close", 0), currency_info),
-                        delta=f"{price_change:.2f}"
-                    )
-                
-                with col2:
-                    st.metric(
-                        label="Volume",
-                        value=f"{int(current_data.get('volume', 0)):,}"
-                    )
-                
-                with col3:
-                    period_change = current_data.get("change_pct", 0)
-                    st.metric(
-                        label=f"{period} Change",
-                        value=f"{period_change:.2f}%"
-                    )
-                
-                # Strategy recommendation
-                if "strategy" in results and "overall" in results["strategy"]:
-                    strategy = results["strategy"]["overall"]
-                    
-                    # Create a colored box based on recommendation
-                    recommendation = strategy.get("recommendation", "HOLD")
-                    confidence = strategy.get("confidence", 0.5)
-                    reasoning = strategy.get("reasoning", "")
-                    
-                    # Set color based on recommendation
-                    rec_color = "#4CAF50" if recommendation == "BUY" else "#F44336" if recommendation == "SELL" else "#2196F3"
-                    
-                    # Display recommendation card
-                    st.markdown(f"""
-                    <div style="background-color: rgba({rec_color.lstrip('#')[:2]}, {rec_color.lstrip('#')[2:4]}, {rec_color.lstrip('#')[4:]}, 0.2); 
-                                border-left: 4px solid {rec_color};
-                                padding: 10px; border-radius: 4px; margin-bottom: 20px;">
-                        <h3 style="color: {rec_color};">{recommendation} Recommendation - {confidence*100:.0f}% Confidence</h3>
-                        <p>{reasoning}</p>
-                    </div>
-                    """, unsafe_allow_html=True)
-            
-                # Price History section
-                st.header("Price History")
-                candlestick_fig = create_candlestick_chart(
-                    stock_data, 
-                    f"{symbol} Price History",
-                    patterns=results.get("patterns", {}),
-                    currency_info=currency_info
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                price_change = current_data.get("change", 0)
+                st.metric(
+                    label="Current Price",
+                    value=format_currency(current_data.get("close", 0), currency_info),
+                    delta=f"{price_change:.2f}"
                 )
-                st.plotly_chart(candlestick_fig, use_container_width=True)
+            
+            with col2:
+                st.metric(
+                    label="Volume",
+                    value=f"{int(current_data.get('volume', 0)):,}"
+                )
+            
+            with col3:
+                period_change = current_data.get("change_pct", 0)
+                st.metric(
+                    label=f"{period} Change",
+                    value=f"{period_change:.2f}%"
+                )
+            
+            # Strategy recommendation
+            if "strategy" in results and "overall" in results["strategy"]:
+                strategy = results["strategy"]["overall"]
                 
-                # Performance chart
-                if "performance" in results and results["performance"]:
-                    st.subheader("Performance Analysis")
-                    perf_chart = create_performance_chart(
-                        results["performance"], 
-                        "Return by Time Period"
-                    )
-                    if perf_chart is not None:
-                        st.plotly_chart(perf_chart, use_container_width=True)
+                # Create a colored box based on recommendation
+                recommendation = strategy.get("recommendation", "HOLD")
+                confidence = strategy.get("confidence", 0.5)
+                reasoning = strategy.get("reasoning", "")
                 
-                # Technical indicators section
-                st.header("Technical Indicators")
+                # Set color based on recommendation
+                rec_color = "#4CAF50" if recommendation == "BUY" else "#F44336" if recommendation == "SELL" else "#2196F3"
                 
-                # Create two columns for indicator charts
-                indicator_col1, indicator_col2 = st.columns(2)
-                
-                with indicator_col1:
-                    # RSI Chart
-                    if 'rsi' in stock_data.columns:
-                        rsi_fig = create_rsi_chart(stock_data)
-                        st.plotly_chart(rsi_fig, use_container_width=True)
-                
-                with indicator_col2:
-                    # MACD Chart
-                    if 'macd' in stock_data.columns:
-                        macd_fig = create_macd_chart(stock_data)
-                        st.plotly_chart(macd_fig, use_container_width=True)
-                
-                # Technical Analysis Summary
-                st.header("Technical Analysis")
-                summary_col1, summary_col2 = st.columns(2)
-                
-                with summary_col1:
-                    # Trend analysis
-                    if "patterns" in results and "trend" in results["patterns"]:
-                        trend_data = results["patterns"]["trend"]
-                        st.subheader("Trend Analysis")
-                        
-                        trend_direction = trend_data.get("direction", "neutral")
-                        trend_strength = trend_data.get("strength", "weak")
-                        
-                        # Display with appropriate color
-                        direction_color = "green" if trend_direction == "bullish" else "red" if trend_direction == "bearish" else "gray"
-                        st.markdown(f"**Direction:** <span style='color:{direction_color};'>{trend_direction.upper()}</span>", unsafe_allow_html=True)
-                        st.write(f"**Strength:** {trend_strength.title()}")
-                        st.write(f"**ADX:** {trend_data.get('adx', 0):.1f}")
-                    
-                    # Support & resistance
-                    if "patterns" in results and "support_resistance" in results["patterns"]:
-                        sr_data = results["patterns"]["support_resistance"]
-                        st.subheader("Support & Resistance")
-                        
-                        if "supports" in sr_data and sr_data["supports"]:
-                            st.write("**Support Levels:**")
-                            for i, level in enumerate(sr_data["supports"][:3]):
-                                st.write(f"{i+1}. {format_currency(level, currency_info)}")
-                        
-                        if "resistances" in sr_data and sr_data["resistances"]:
-                            st.write("**Resistance Levels:**")
-                            for i, level in enumerate(sr_data["resistances"][:3]):
-                                st.write(f"{i+1}. {format_currency(level, currency_info)}")
-                
-                with summary_col2:
-                    # Indicator summary
-                    st.subheader("Key Indicators")
-                    
-                    # RSI
-                    if "rsi" in stock_data.columns:
-                        rsi_value = stock_data["rsi"].iloc[-1]
-                        rsi_status = "Overbought" if rsi_value > 70 else "Oversold" if rsi_value < 30 else "Neutral"
-                        rsi_color = "red" if rsi_value > 70 else "green" if rsi_value < 30 else "white"
-                        st.markdown(f"**RSI (14):** {rsi_value:.1f} - <span style='color:{rsi_color};'>{rsi_status}</span>", unsafe_allow_html=True)
-                    
-                    # MACD
-                    if all(x in stock_data.columns for x in ["macd", "macd_signal"]):
-                        macd = stock_data["macd"].iloc[-1]
-                        signal = stock_data["macd_signal"].iloc[-1]
-                        hist = stock_data["macd_histogram"].iloc[-1]
-                        
-                        macd_status = "Bullish" if macd > signal else "Bearish"
-                        macd_color = "green" if macd > signal else "red"
-                        
-                        st.markdown(f"**MACD:** {macd:.3f} - <span style='color:{macd_color};'>{macd_status}</span>", unsafe_allow_html=True)
-                        st.write(f"**Signal:** {signal:.3f}")
-                        st.write(f"**Histogram:** {hist:.3f}")
-                    
-                    # Bollinger Bands
-                    if all(x in stock_data.columns for x in ["bb_upper", "bb_middle", "bb_lower"]):
-                        price = stock_data["close"].iloc[-1]
-                        upper = stock_data["bb_upper"].iloc[-1]
-                        lower = stock_data["bb_lower"].iloc[-1]
-                        
-                        bb_status = "Above Upper Band" if price > upper else "Below Lower Band" if price < lower else "Within Bands"
-                        bb_color = "red" if price > upper else "green" if price < lower else "white"
-                        
-                        st.markdown(f"**Bollinger Bands:** <span style='color:{bb_color};'>{bb_status}</span>", unsafe_allow_html=True)
-                        st.write(f"**Upper Band:** {format_currency(upper, currency_info)}")
-                        st.write(f"**Lower Band:** {format_currency(lower, currency_info)}")
-                
-                # News section
-                st.header("Recent News")
-                news_items = results.get("news", [])
-                
-                if news_items:
-                    for item in news_items:
-                        with st.expander(item.get('headline', 'News item')):
-                            st.write(f"**Source**: {item.get('source', 'Unknown')}")
-                            st.write(f"**Date**: {datetime.fromtimestamp(item.get('datetime', 0)).strftime('%Y-%m-%d')}")
-                            st.write(item.get('summary', 'No summary available'))
-                            st.write(f"[Read more]({item.get('url', '#')})")
-                else:
-                    st.info(f"No recent news found for {symbol}")
-                
-                # Data table
-                st.header("Recent Data")
-                display_cols = ['open', 'high', 'low', 'close', 'volume', 'ma_20', 'ma_50', 'rsi']
-                # Filter for columns that exist
-                existing_cols = [col for col in display_cols if col in stock_data.columns]
-                display_data = stock_data[existing_cols].copy() if existing_cols else stock_data
-                
-                # Format with appropriate currency symbol
-                currency_symbol = currency_info['symbol']
-                st.dataframe(display_data.tail(10).style.format({
-                    'open': f'{currency_symbol}{{:.2f}}',
-                    'high': f'{currency_symbol}{{:.2f}}',
-                    'low': f'{currency_symbol}{{:.2f}}',
-                    'close': f'{currency_symbol}{{:.2f}}',
-                    'volume': '{:,.0f}',
-                    'ma_20': f'{currency_symbol}{{:.2f}}',
-                    'ma_50': f'{currency_symbol}{{:.2f}}',
-                    'rsi': '{:.2f}'
-                }))
-            else:
-                st.error("No data available for this stock symbol.")
-                st.info("Please try another stock symbol or check your API keys.")
+                # Display recommendation card
+                st.markdown(f"""
+                <div style="background-color: rgba({rec_color.lstrip('#')[:2]}, {rec_color.lstrip('#')[2:4]}, {rec_color.lstrip('#')[4:]}, 0.2); 
+                            border-left: 4px solid {rec_color};
+                            padding: 10px; border-radius: 4px; margin-bottom: 20px;">
+                    <h3 style="color: {rec_color};">{recommendation} Recommendation - {confidence*100:.0f}% Confidence</h3>
+                    <p>{reasoning}</p>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            # Price History section
+            st.header("Price History")
+            candlestick_fig = create_candlestick_chart(
+                stock_data, 
+                f"{symbol} Price History",
+                patterns=results.get("patterns", {}),
+                currency_info=currency_info
+            )
+            st.plotly_chart(candlestick_fig, use_container_width=True)
+            
+            # Performance chart
+            if "performance" in results and results["performance"]:
+                st.subheader("Performance Analysis")
+                perf_chart = create_performance_chart(
+                    results["performance"], 
+                    "Return by Time Period"
+                )
+                if perf_chart is not None:
+                    st.plotly_chart(perf_chart, use_container_width=True)
+            
+            # Rest of your charts and analysis...
+            # Technical indicators section
+st.header("Technical Indicators")
+
+# Create two columns for indicator charts
+indicator_col1, indicator_col2 = st.columns(2)
+
+with indicator_col1:
+    # RSI Chart
+    if 'rsi' in stock_data.columns:
+        rsi_fig = create_rsi_chart(stock_data)
+        st.plotly_chart(rsi_fig, use_container_width=True)
+
+with indicator_col2:
+    # MACD Chart
+    if 'macd' in stock_data.columns:
+        macd_fig = create_macd_chart(stock_data)
+        st.plotly_chart(macd_fig, use_container_width=True)
+
+# Technical Analysis Summary
+st.header("Technical Analysis")
+summary_col1, summary_col2 = st.columns(2)
+
+with summary_col1:
+    # Trend analysis
+    if "patterns" in results and "trend" in results["patterns"]:
+        trend_data = results["patterns"]["trend"]
+        st.subheader("Trend Analysis")
+        
+        trend_direction = trend_data.get("direction", "neutral")
+        trend_strength = trend_data.get("strength", "weak")
+        
+        # Display with appropriate color
+        direction_color = "green" if trend_direction == "bullish" else "red" if trend_direction == "bearish" else "gray"
+        st.markdown(f"**Direction:** <span style='color:{direction_color};'>{trend_direction.upper()}</span>", unsafe_allow_html=True)
+        st.write(f"**Strength:** {trend_strength.title()}")
+        st.write(f"**ADX:** {trend_data.get('adx', 0):.1f}")
+    
+    # Support & resistance
+    if "patterns" in results and "support_resistance" in results["patterns"]:
+        sr_data = results["patterns"]["support_resistance"]
+        st.subheader("Support & Resistance")
+        
+        if "supports" in sr_data and sr_data["supports"]:
+            st.write("**Support Levels:**")
+            for i, level in enumerate(sr_data["supports"][:3]):
+                st.write(f"{i+1}. {format_currency(level, currency_info)}")
+        
+        if "resistances" in sr_data and sr_data["resistances"]:
+            st.write("**Resistance Levels:**")
+            for i, level in enumerate(sr_data["resistances"][:3]):
+                st.write(f"{i+1}. {format_currency(level, currency_info)}")
+
+with summary_col2:
+    # Indicator summary
+    st.subheader("Key Indicators")
+    
+    # RSI
+    if "rsi" in stock_data.columns:
+        rsi_value = stock_data["rsi"].iloc[-1]
+        rsi_status = "Overbought" if rsi_value > 70 else "Oversold" if rsi_value < 30 else "Neutral"
+        rsi_color = "red" if rsi_value > 70 else "green" if rsi_value < 30 else "white"
+        st.markdown(f"**RSI (14):** {rsi_value:.1f} - <span style='color:{rsi_color};'>{rsi_status}</span>", unsafe_allow_html=True)
+    
+    # MACD
+    if all(x in stock_data.columns for x in ["macd", "macd_signal"]):
+        macd = stock_data["macd"].iloc[-1]
+        signal = stock_data["macd_signal"].iloc[-1]
+        hist = stock_data["macd_histogram"].iloc[-1]
+        
+        macd_status = "Bullish" if macd > signal else "Bearish"
+        macd_color = "green" if macd > signal else "red"
+        
+        st.markdown(f"**MACD:** {macd:.3f} - <span style='color:{macd_color};'>{macd_status}</span>", unsafe_allow_html=True)
+        st.write(f"**Signal:** {signal:.3f}")
+        st.write(f"**Histogram:** {hist:.3f}")
+    
+    # Bollinger Bands
+    if all(x in stock_data.columns for x in ["bb_upper", "bb_middle", "bb_lower"]):
+        price = stock_data["close"].iloc[-1]
+        upper = stock_data["bb_upper"].iloc[-1]
+        lower = stock_data["bb_lower"].iloc[-1]
+        
+        bb_status = "Above Upper Band" if price > upper else "Below Lower Band" if price < lower else "Within Bands"
+        bb_color = "red" if price > upper else "green" if price < lower else "white"
+        
+        st.markdown(f"**Bollinger Bands:** <span style='color:{bb_color};'>{bb_status}</span>", unsafe_allow_html=True)
+        st.write(f"**Upper Band:** {format_currency(upper, currency_info)}")
+        st.write(f"**Lower Band:** {format_currency(lower, currency_info)}")
+
+# News section
+st.header("Recent News")
+news_items = results.get("news", [])
+
+if news_items:
+    for item in news_items:
+        with st.expander(item.get('headline', 'News item')):
+            st.write(f"**Source**: {item.get('source', 'Unknown')}")
+            st.write(f"**Date**: {datetime.fromtimestamp(item.get('datetime', 0)).strftime('%Y-%m-%d')}")
+            st.write(item.get('summary', 'No summary available'))
+            st.write(f"[Read more]({item.get('url', '#')})")
+else:
+    st.info(f"No recent news found for {symbol}")
+
+# Data table
+st.header("Recent Data")
+display_cols = ['open', 'high', 'low', 'close', 'volume', 'ma_20', 'ma_50', 'rsi']
+# Filter for columns that exist
+existing_cols = [col for col in display_cols if col in stock_data.columns]
+display_data = stock_data[existing_cols].copy() if existing_cols else stock_data
+
+# Format with appropriate currency symbol
+currency_symbol = currency_info['symbol']
+st.dataframe(display_data.tail(10).style.format({
+    'open': f'{currency_symbol}{{:.2f}}',
+    'high': f'{currency_symbol}{{:.2f}}',
+    'low': f'{currency_symbol}{{:.2f}}',
+    'close': f'{currency_symbol}{{:.2f}}',
+    'volume': '{:,.0f}',
+    'ma_20': f'{currency_symbol}{{:.2f}}',
+    'ma_50': f'{currency_symbol}{{:.2f}}',
+    'rsi': '{:.2f}'
+}))
+
+
+
+# Default welcome screen in first tab
+# Second tab - Investment Assistant
+with tabs[1]:
+    st.header("Investment Assistant")
+    st.write("Ask questions about stocks and get AI-powered investment insights.")
+
+    # Add document context options
+    has_documents = 'processed_documents' in st.session_state and st.session_state.processed_documents
+
+    if has_documents:
+        # Get list of available documents
+        doc_names = list(st.session_state.processed_documents.keys())
+
+        # Create document selection
+        st.subheader("Document Context")
+        use_docs = st.checkbox("Include uploaded documents in analysis", value=True)
+
+        if use_docs:
+            selected_docs = st.multiselect(
+                "Select documents to include in context:",
+                options=doc_names,
+                default=doc_names[:1] if doc_names else []
+            )
+
+    # Query input
+    user_query = st.text_area("Ask a question about investing or about the current stock:", 
+                            height=100, 
+                            key="user_query",
+                            placeholder="Example: What's the current trend for this stock based on technical indicators?")
+
+    # Add a prominent submit button
+    submit_button = st.button("Submit Question", key="submit_question", type="primary")
+
+    if submit_button:
+        if user_query:
+            st.write(f"You asked: {user_query}")
+
+            with st.spinner("Generating response..."):
+                try:
+                    # Prepare document context if available
+                    document_context = ""
+
+                    if has_documents and use_docs and selected_docs:
+                        st.info(f"Including context from {len(selected_docs)} document(s)")
+
+                        # Import document utilities
+                        from simple_rag_utils import get_document_content
+
+                        # Add content from selected documents
+                        for doc_name in selected_docs:
+                            doc_content = get_document_content(doc_name)
+                            if doc_content:
+                                # Truncate if too long (limit to ~1000 chars per document)
+                                if len(doc_content) > 1000:
+                                    doc_content = doc_content[:997] + "..."
+
+                                document_context += f"\n\nContent from document '{doc_name}':\n{doc_content}\n"
+
+                    # Include document context in the query if available
+                    if document_context:
+                        modified_query = f"{user_query}\n\nConsider the following document context when answering:\n{document_context}"
+                    else:
+                        modified_query = user_query
+
+                    # Process the query
+                    response_data = coordinator.process_user_query(modified_query, symbol)
+                    response = response_data["response"]
+
+                    # Display the response in a nice box
+                    st.markdown("""
+                    <div style="background-color: rgba(70, 130, 180, 0.1); 
+                                border-left: 4px solid #4682b4;
+                                padding: 15px; border-radius: 4px; margin: 15px 0;">
+                    """, unsafe_allow_html=True)
+                    st.write(response)
+                    st.markdown("</div>", unsafe_allow_html=True)
+                except Exception as e:
+                    st.error(f"Error processing query: {e}")
+                    st.write("I couldn't generate a complete response. Please try again with a different question.")
+        else:
+            st.warning("Please enter a question to get insights.")
+            
+    
+
         
         
 
