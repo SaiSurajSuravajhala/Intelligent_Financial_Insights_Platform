@@ -10,9 +10,16 @@ import streamlit as st
 from typing import List, Dict, Tuple, Optional, Any
 import re
 
-# Import Chroma
 import chromadb
-from chromadb.utils import embedding_functions
+from chromadb.config import Settings       # add this import
+
+client = chromadb.Client(
+    Settings(
+        chroma_db_impl="faiss",            # use FAISS instead of hnswlib
+        persist_directory="data/chroma"    # keep your existing folder
+    )
+)
+
 
 # Create directories for document cache
 os.makedirs("data/documents", exist_ok=True)

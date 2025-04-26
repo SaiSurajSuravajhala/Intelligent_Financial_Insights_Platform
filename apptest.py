@@ -1095,6 +1095,7 @@ def get_company_news(symbol, count=5):
         return []
 
 # Function to get AI response
+# Function to get AI response
 def get_ai_response(query, symbol, stock_data):
     try:
         if not anthropic_client:
@@ -1138,6 +1139,11 @@ def get_ai_response(query, symbol, stock_data):
         
         You are an investment advisor assistant helping answer questions about {symbol} stock.
         Provide concise, informative answers about investment strategies, technical analysis, and market trends.
+        
+        If the query includes document context, consider this information when formulating your response.
+        When referencing information from documents, clearly indicate which document the information comes from
+        by stating "According to [Document Name]" or similar attribution.
+        
         If asked for specific investment advice, include appropriate disclaimers about the risks involved.
         Focus on educational content rather than specific buy/sell instructions.
         """
@@ -1390,6 +1396,8 @@ class SimpleCoordinator:
             stock_data = context.get("historical_data", None)
         
         # Generate response
+        # Access uploaded_files from the session state
+        uploaded_files = st.session_state.get("uploaded_files", None)
         response = get_ai_response(query, symbol, stock_data)
         
         # Save query to database
@@ -1736,8 +1744,73 @@ def main():
         if st.sidebar.button("Debug Database"):
             st.session_state.page = "debug"
             st.rerun()
+
+            # Document upload section
+
+
+
         
+# Find this section in your main() function:
+# After the Debug button but before the "Get analysis results using coordinator" section
+
+# Document upload section
+st.sidebar.header("Document Upload")
+uploaded_files = st.sidebar.file_uploader(
+    "Upload financial documents (PDF, Word)",
+    type=['pdf', 'docx'],
+    accept_multiple_files=True
+)
+
+# Process uploaded files
+if uploaded_files:
+    st.sidebar.write(f"{len(uploaded_files)} document(s) uploaded")
+    
+    # Process documents button
+    if st.sidebar.button("Process Documents"):
+        try:
+            # Import the simple_rag_utils module
+            from simple_rag_utils import process_and_add_document
+            
+            with st.spinner("Processing documents..."):
+                for file in uploaded_files:
+                    success, message = process_and_add_document(file)
+                    if success:
+                        st.sidebar.success(message)
+                    else:
+                        st.sidebar.error(message)
+                
+                st.sidebar.success("All documents processed!")
+                
+                # Store uploaded files in session state for later use
+                if 'uploaded_files' not in st.session_state:
+                    st.session_state.uploaded_files = []
+                st.session_state.uploaded_files.extend(uploaded_files)
+        except Exception as e:
+            st.sidebar.error(f"Error processing documents: {e}")
+
+# Get the currently selected symbol
+            symbol = st.session_state.get("favorite_selector", "AAPL")  # Default to AAPL if nothing selected
         # Get analysis results using coordinator
+
+        # Get the currently selected symbol
+            symbol = st.session_state.get("favorite_selector", "AAPL")  # Default to AAPL if nothing selected
+
+#            Add this line to fix the error:
+            period = st.session_state.get("period", "1 Week")  # Default to 1 Week
+
+            # Get the currently selected symbol
+            symbol = st.session_state.get("favorite_selector", "AAPL")  # Default to AAPL if nothing selected
+
+# Make sure period is defined
+            period = st.session_state.get("period", "1 Week")  # Default to 1 Week if not set
+
+            # Add these two lines right before line 1807
+symbol = st.session_state.get("favorite_selector", "AAPL")  # Default to AAPL if nothing selected
+period = st.session_state.get("period", "1 Week")  # Default to 1 Week if not set
+
+# Then this line should work
+with st.spinner(f"Analyzing {symbol}..."):
+
         with st.spinner(f"Analyzing {symbol}..."):
             try:
                 # Process the stock request through coordinator
@@ -1759,7 +1832,7 @@ def main():
         # Main tabs
         tabs = st.tabs(["Analysis Dashboard", "Investment Assistant"])
         
-        with tabs[0]:
+        with tabs[1]:
             st.header(f"{symbol} Analysis")
             
             # Current price info
@@ -1956,33 +2029,12 @@ def main():
                 st.error("No data available for this stock symbol.")
                 st.info("Please try another stock symbol or check your API keys.")
         
-        with tabs[1]:
-            st.header("Investment Assistant")
-            st.write("Ask questions about stocks and get AI-powered investment insights.")
-            
-            user_query = st.text_area("Ask a question about investing or about the current stock:", 
-                                    height=100, 
-                                    key="user_query")
-            
-            if st.button("Submit"):
-                if user_query:
-                    st.write(f"You asked: {user_query}")
-                    
-                    with st.spinner("Generating response..."):
-                        try:
-                            # Use the coordinator to process the query
-                            response_data = coordinator.process_user_query(user_query, symbol)
-                            response = response_data["response"]
-                            st.write(response)
-                        except Exception as e:
-                            st.error(f"Error processing query: {e}")
-                            st.write("I couldn't generate a complete response due to an error. Please try again with a different question.")
-                else:
-                    st.warning("Please enter a question to get insights.")
         
-        # Footer
-        st.markdown("---")
-        st.caption(f"Intelligent Financial Insights Platform | Data as of {datetime.now().strftime('%Y-%m-%d')}")
+
+
+
+            
+
 
 # Run the app
 if __name__ == "__main__":
