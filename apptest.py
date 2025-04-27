@@ -20,12 +20,7 @@ from anthropic import Anthropic
 from sqlmodel import SQLModel, create_engine, Session, select, Field, delete
 from typing import Optional, List, Dict, Any, Tuple, Union
 
-from agents.coordinator import AgentCoordinator  # Importing the Agent Coordinator
-from agents.data_analysis import DataAnalysisEngine  # Importing Data Analysis Agent
-from agents.insight_generator import InsightGenerator  # Importing Insight Generator Agent
-from agents.strategy_engine import StrategyRecommendationEngine  # Importing Strategy Recommendation Agent
-from agents.user_interaction import UserInteractionManager  # Importing User Interaction Manager Agent
-agent_coordinator = AgentCoordinator()
+
 
 # Load environment variables from .env file
 load_dotenv()
