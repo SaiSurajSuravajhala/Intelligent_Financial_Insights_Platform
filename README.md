@@ -1,139 +1,174 @@
 # Intelligent Financial Insights Platform
 
-A comprehensive AI-powered platform for financial market analysis and investment strategy.
+A comprehensive financial analysis tool that combines technical analysis, AI-powered insights, and document-aware investment recommendations.
+
+![Platform Banner](https://example.com/banner.png)
 
 ## Overview
 
-The Intelligent Financial Insights Platform is a sophisticated tool that combines traditional financial analysis with AI-powered insights to help users make informed investment decisions. The platform features:
+The Intelligent Financial Insights Platform is a robust Streamlit-based web application designed to provide comprehensive stock analysis and investment insights. It combines powerful technical analysis tools with AI-driven recommendations and document-aware context to help users make better investment decisions.
 
-- **Technical & Fundamental Analysis**: Comprehensive analysis of stock price patterns, indicators, company financials, and valuation metrics.
-- **News & Sentiment Analysis**: Real-time analysis of news articles and social media sentiment related to stocks.
-- **Investment Strategy Recommendations**: AI-generated investment strategies based on multiple data sources and analysis techniques.
-- **Interactive Q&A Capability**: A natural language interface for asking investment-related questions.
+## Key Features
 
-## Project Architecture
+### 1. Multi-Market Stock Analysis
+- Supports stocks from multiple international markets:
+  - US (default)
+  - India (BSE/NSE)
+  - UK (London Stock Exchange)
+  - Canada (TSX)
+  - Australia (ASX)
+  - Germany (Frankfurt)
 
-The platform follows a modular hierarchical agent architecture:
+### 2. Advanced Technical Analysis
+- **Interactive Price Charts**: Candlestick charts with adjustable time periods
+- **Technical Indicators**:
+  - Moving Averages (20, 50, 200-day)
+  - Relative Strength Index (RSI)
+  - MACD (Moving Average Convergence Divergence)
+  - Bollinger Bands
+  - ADX (Average Directional Index)
+  - Stochastic Oscillator
+  - Ichimoku Cloud
+- **Pattern Detection**:
+  - Support and resistance levels
+  - Trend direction and strength analysis
+  - Overbought/Oversold conditions
+- **Performance Metrics**:
+  - Period returns (daily, weekly, monthly, quarterly, yearly)
+  - Volatility analysis
+  - Drawdown calculations
+  - Risk-adjusted returns (Sharpe, Sortino)
 
-### Data Collection Layer
-- Web scraping module for news and social sentiment
-- Financial API integration for market data and company fundamentals
+### 3. AI-Powered Investment Assistant
+- **Claude API Integration**: Leverages Anthropic's Claude for natural language understanding
+- **Context-Aware Responses**: Considers both technical data and uploaded documents
+- **Real-Time Data Analysis**: Processes the latest market data for accurate insights
+- **Personalized Recommendations**: Investment advice tailored to the selected stock
 
-### Data Processing & Storage Layer
-- Data preprocessing module for cleaning and normalization
-- Feature engineering for technical indicators
-- SQLite database with Model Context Protocol
+### 4. Document Processing (RAG Implementation)
+- **Document Upload**: Support for PDF and DOCX financial documents
+- **Intelligent Analysis**: Extracts key information from financial reports
+- **Context Integration**: Uses document insights to enhance investment recommendations
+- **Financial Metrics Extraction**: Automatically identifies key metrics from documents
 
-### Hierarchical Agent System
-- Primary Agent Coordinator for orchestration
-- Specialized modules for data analysis, insight generation, strategy recommendations, and user interaction
+### 5. User-Friendly Interface
+- **Personalized Favorites**: Save and manage favorite stocks
+- **Multi-Tab Interface**: Separate tabs for analysis and investment assistance
+- **Interactive Visualizations**: Dynamic charts and indicators
+- **Learning Resources**: Built-in educational content on stock market fundamentals
 
-### User Interface Layer
-- Streamlit-based dashboard with interactive visualizations
-- Natural language query interface
+## Technology Stack
 
-## Installation
+- **Frontend**: Streamlit
+- **Data Processing**: Pandas, NumPy
+- **Visualization**: Plotly
+- **Database**: SQLite (via SQLModel)
+- **APIs**:
+  - Alpha Vantage (market data)
+  - Finnhub (news and market information)
+  - Anthropic Claude (AI assistant)
+- **Document Processing**:
+  - PyPDF2 (PDF processing)
+  - python-docx (DOCX processing)
+  - ChromaDB (vector database for RAG)
+  - Custom RAG implementation
 
+## Setup and Installation
+
+### Prerequisites
+- Python 3.8+
+- pip package manager
+
+### Environment Setup
 1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/financial-insights-platform.git
-cd financial-insights-platform
+   ```
+   git clone https://github.com/yourusername/intelligent-financial-insights.git
+   cd intelligent-financial-insights
+   ```
+
+2. Create a virtual environment:
+   ```
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+
+3. Install dependencies:
+   ```
+   pip install -r requirements.txt
+   ```
+
+4. Create a `.env` file with your API keys:
+   ```
+   ALPHA_VANTAGE_API_KEY=your_alpha_vantage_key
+   FINNHUB_API_KEY=your_finnhub_key
+   ANTHROPIC_API_KEY=your_anthropic_key
+   ```
+
+### Running the Application
+Launch the application using Streamlit:
+```
+streamlit run apptest.py
 ```
 
-2. Install the required dependencies:
-```bash
-pip install -r requirements.txt
-```
+The application will be available at http://localhost:8501 by default.
 
-3. Create a `.env` file in the root directory with your API keys:
-```
-ALPHA_VANTAGE_API_KEY=your_alpha_vantage_api_key
-FINNHUB_API_KEY=your_finnhub_api_key
-ANTHROPIC_API_KEY=your_anthropic_api_key
-```
+## Usage Guide
 
-## Usage
+### Getting Started
+1. **Select a Stock**: Choose from favorites or search for a new one
+2. **Choose Time Period**: Select the time frame for analysis (1 week to 1 year)
+3. **Review Analysis**: Examine technical indicators, patterns, and recommendations
+4. **Ask Questions**: Use the Investment Assistant to get AI-powered insights
 
-1. Run the Streamlit application:
-```bash
-streamlit run app.py
-```
+### Advanced Features
+1. **Document Upload**:
+   - Click on Document Upload in the sidebar
+   - Upload financial documents (PDF/DOCX)
+   - Process the documents
+   - Switch to Investment Assistant tab to ask document-aware questions
 
-2. Use the sidebar to select a stock symbol and time period for analysis.
+2. **Managing Favorites**:
+   - Add stocks to favorites for quick access
+   - Remove stocks from favorites when no longer needed
 
-3. Navigate through the tabs to explore different aspects of the analysis:
-   - **Analysis Dashboard**: Technical and fundamental analysis
-   - **News & Sentiment**: News articles and sentiment analysis
-   - **Strategy**: Investment strategy recommendations
-   - **Investment Assistant**: Ask questions about the stock or general investment topics
+3. **Learning Resources**:
+   - Access Stock Market Basics for educational content
+   - Learn about different investment strategies and concepts
 
-## Feature Highlights
+### Best Practices for Document Analysis
+- Upload recent financial reports for the most relevant insights
+- Include company annual reports, quarterly earnings, and analyst research
+- Ask specific questions that reference both the technical data and document content
+- Compare financial metrics with technical indicators for comprehensive analysis
 
-### Technical Analysis
-- Price charts with technical indicators
-- Support and resistance level identification
-- Pattern recognition
-- Volume analysis
-- Volatility assessment
+## Architecture and Data Flow
 
-### Fundamental Analysis
-- Company financial metrics
-- Valuation ratios
-- Growth indicators
-- Sector comparison
+The platform is built around a modular architecture:
 
-### News & Sentiment Analysis
-- Latest news articles with sentiment scores
-- Overall sentiment trends
-- Market-moving news identification
+1. **Data Collection Layer**: Interfaces with financial APIs to retrieve market data
+2. **Processing Layer**: Computes technical indicators and performance metrics
+3. **Storage Layer**: Manages favorites, query history, and stock data in SQLite
+4. **RAG Processing Layer**: Handles document ingestion, processing, and retrieval
+5. **AI Integration Layer**: Connects with Claude API for intelligent insights
+6. **Presentation Layer**: Streamlit-based UI for interactive visualization and interaction
 
-### Investment Strategy
-- Time-horizon based recommendations (short, medium, long-term)
-- Entry and exit point suggestions
-- Risk assessment and management
-- Portfolio considerations
+## Contributing
 
-### Natural Language Interface
-- Ask questions about stocks in plain English
-- Get detailed answers based on comprehensive analysis
-- Explore investment concepts and terminology
+Contributions to improve the platform are welcome. Please follow these steps:
 
-## Data Sources
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-The platform integrates data from multiple sources:
-
-- **Alpha Vantage**: Historical stock prices, company fundamentals
-- **Finnhub**: Real-time quotes, company news, financials
-- **Web Scraping**: News articles, social media sentiment
-- **Claude API**: Natural language processing and insight generation
-
-## Customization
-
-Users can customize the platform by:
-
-- Uploading custom stock data (CSV format)
-- Comparing multiple stocks
-- Adjusting time periods for analysis
-- Selecting specific technical indicators
-
-## Dependencies
-
-- Python 3.9+
-- Streamlit
-- Pandas & NumPy
-- Plotly
-- SQLModel & SQLAlchemy
-- requests & BeautifulSoup
-- Anthropic Claude API
-- LangChain
-
-## License
+## Licensing
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## Acknowledgments
+## Acknowledgements
 
-- Financial data provided by Alpha Vantage and Finnhub
-- Natural language capabilities powered by Anthropic's Claude
-- Agent orchestration powered by LangChain
-- Interactive visualizations built with Plotly
+- [Alpha Vantage](https://www.alphavantage.co/) for financial market data
+- [Finnhub](https://finnhub.io/) for additional market information and news
+- [Anthropic](https://www.anthropic.com/) for Claude AI capabilities
+- [Streamlit](https://streamlit.io/) for the interactive web framework
