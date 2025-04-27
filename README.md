@@ -3,6 +3,7 @@
 A comprehensive financial analysis tool that combines technical analysis, AI-powered insights, and document-aware investment recommendations.
 
 ![Platform Banner](https://example.com/banner.png)
+-[Follow the link to test my application in detailed](https://intelligentfinancialinsightsplatform-azsg6qufwc2bzi2rszbrjz.streamlit.app/)
 
 ## Overview
 
