@@ -2,8 +2,6 @@
 
 A comprehensive financial analysis tool that combines technical analysis, AI-powered insights, and document-aware investment recommendations.
 
--[Follow the link to test my application in detailed](https://intelligentfinancialinsightsplatform-azsg6qufwc2bzi2rszbrjz.streamlit.app/)
-
 ## Overview
 
 The Intelligent Financial Insights Platform is a robust Streamlit-based web application designed to provide comprehensive stock analysis and investment insights. It combines powerful technical analysis tools with AI-driven recommendations and document-aware context to help users make better investment decisions.
